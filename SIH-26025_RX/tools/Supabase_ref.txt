@@ -1,0 +1,76 @@
+CREATE TABLE IF NOT EXISTS public.telemetry (
+    node_number BIGINT PRIMARY KEY,
+    sequence_number INT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    altitude DOUBLE PRECISION,
+    utc_time TIME,
+    is_time_valid BOOLEAN,
+
+    -- Displacements (Meters)
+    disp_x_m FLOAT,
+    disp_y_m FLOAT,
+    disp_z_m FLOAT,
+
+    -- Accelerations (m/s²)
+    acc_x_ms2 FLOAT,
+    acc_y_ms2 FLOAT,
+    acc_z_ms2 FLOAT,
+    resultant_accel FLOAT,
+
+    -- Rotation Rates (deg/s)
+    rate_roll FLOAT,
+    rate_pitch FLOAT,
+    rate_yaw FLOAT,
+
+    -- Angles (Degrees)
+    angle_roll FLOAT,
+    angle_pitch FLOAT,
+    angle_yaw FLOAT,
+
+    -- System Flags
+    vibration_detected BOOLEAN,
+    is_high_precision BOOLEAN,
+
+    -- Receiver Local Coordinates
+    rx_latitude DOUBLE PRECISION,
+    rx_longitude DOUBLE PRECISION,
+
+    -- System Metadata
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Automatically update 'updated_at' whenever a row is updated
+CREATE OR REPLACE FUNCTION update_telemetry_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TRIGGER IF EXISTS trigger_update_telemetry_timestamp
+ON public.telemetry;
+
+CREATE TRIGGER trigger_update_telemetry_timestamp
+BEFORE UPDATE ON public.telemetry
+FOR EACH ROW
+EXECUTE FUNCTION update_telemetry_timestamp();
+
+
+-- Enable Row Level Security
+ALTER TABLE public.telemetry ENABLE ROW LEVEL SECURITY;
+
+
+-- Allow anonymous users to insert/update/select/delete
+DROP POLICY IF EXISTS "Allow anon insert and update"
+ON public.telemetry;
+
+CREATE POLICY "Allow anon insert and update"
+ON public.telemetry
+FOR ALL
+TO anon
+USING (true)
+WITH CHECK (true);
